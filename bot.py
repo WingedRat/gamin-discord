@@ -3,6 +3,8 @@ import redis
 import logging
 import time
 import os
+import asyncio
+import json
 import urllib.request
 import xml.etree.ElementTree as ElementTree
 
@@ -15,11 +17,13 @@ except FileExistsError:
     pass
 logging.basicConfig(format='%(asctime)s %(levelname)s %(name)s: %(message)s ', datefmt='%d/%m/%Y %H:%M:%S',
                     filename='logs/{0}.log'.format(log_time), level=logging.DEBUG)
+last_message = None
 
 
 @client.event
 async def on_ready():
     print('Initializing bot...')
+    await redis_check()
     print('--------------------------------------------------------------------')
     print('Discord API version is: {0}'.format(discord.__version__))
     print('Logfile: logs/{0}.log'.format(log_time))
@@ -40,24 +44,13 @@ async def on_ready():
         print('No status message')
     print('--------------------------------------------------------------------')
     print('Bot is now awaiting for client messages...')
-    last_message = int(redis_get('message_query:last'))
     print('And calling redis. Last message id is {0}'.format(last_message))
-    while 1:
-        time.sleep(1)
-        message_query_last = int(redis_get('message_query:last'))
-        if last_message != message_query_last:
-            await client.send_message(
-                discord.utils.find(lambda c: c.name == 'bots', discord.utils.find(lambda c: c.name == 'RogueLabs', client.servers).channels), '{0}: {1}'.format(
-                    redis_get('message_query:id{0}:author'.format(message_query_last)),
-                    redis_get('message_query:id{0}:content'.format(message_query_last))))
-            last_message = message_query_last
 
 
 @client.event
 async def on_message(message):
     content = message.content
     if message.author != client.user:
-        print(message.channel)
         if content.startswith('!'):
             try:
                 prefix_and_command, arguments = content.split(maxsplit=1)
@@ -83,36 +76,28 @@ async def on_message(message):
                 await client.send_message(message.channel, redis_get(arguments[0]))
             elif command == 'set':
                 await client.send_message(message.channel, redis_set(arguments[0], arguments[1]))
-        elif message.channel == discord.utils.find(lambda c: c.name == 'gamin', message.server.channels):
+        elif message.channel == discord.utils.find(lambda c: c.name == 'dev', message.server.channels):
             forward(message)
+    print('[{1}] {0} {3}/#{4} {2}: {5}'.
+          format(time.strftime('%H:%M:%S'),
+                 last_message, message.author.name, message.server, message.channel, message.content))
 
 
-def forward(message):
-    message_query_last = int(redis_get('message_query:last'))
-    if message_query_last is None:
-        message_query_last = 0
-    logging.debug('Message id{0} forwarded'.format(message_query_last))
-    redis_set('message_query:id{0}:author'.format(message_query_last + 1), message.author)
-    redis_set('message_query:id{0}:content'.format(message_query_last + 1), message.content)
-    redis_set('message_query:id{0}:origin'.format(message_query_last + 1), 'discord')
-    redis_set('message_query:last', message_query_last + 1)
-
-
-def issue():
-    pass
-
-
-def radio(arguments, channel):
-    pass
-
-
-def now_playing():
-    response = urllib.request.urlopen('http://radioparadise.com/xml/now.xml')
-    tree = ElementTree.parse(response)
-    root = tree.getroot()
-    return '#nowplaying: {0} - {1} с альбома {2} \n' \
-           'http://www.radioparadise.com/rp_2.php?#name=Music&file=songinfo&song_id={3}'.\
-        format(root[0][3].text, root[0][4].text, root[0][6].text, root[0][5].text)
+async def redis_check():
+    global last_message
+    if redis_get('message_query:last') is not None:
+        last_message = int(redis_get('message_query:last'))
+    else:
+        last_message = 0
+    return True
+    while True:
+        if redis_get('message_query:last') is not None:
+            last_message = int(redis_get('message_query:last'))
+        else:
+            last_message = 0
+        # Частота опроса Redis (точнее, время ожидания до следующего опроса)
+        # 1 = 1 раз в секунду, 2 = каждые две секунды
+        await asyncio.sleep(1)
 
 
 def redis_get(key):
@@ -136,8 +121,55 @@ def redis_set(key, value):
         return False
 
 
+def json_compose(message, message_query_last):
+    json_msg = \
+        {'id': message_query_last,
+         'author': message.author.name,
+         'content': message.content,
+         'origin': 'discord'}
+    return json.dumps(json_msg)
+
+
+def json_parse(json_text):
+    message = json.loads(json_text.replace("'", "\""))
+    return '\nType: {0}\nContent: {1}\nParsed: \n\nID: {3}\nAuthor: {2}\nContent: {5}\nOrigin: {4}'.\
+        format(type(message),
+               message,
+               message.get('author'),
+               message.get('id'),
+               message.get('origin'),
+               message.get('content'))
+
+
+def forward(message):
+    global last_message
+    composed_msg = json_compose(message, last_message)
+    redis_set('message_query:id{0}'.format(last_message), composed_msg)
+    last_message += 1
+    redis_set('message_query:last', last_message)
+    logging.debug('Message id{0} forwarded'.format(last_message))
+
+
+def issue():
+    pass
+
+
+def radio(arguments, channel):
+    pass
+
+
+def now_playing():
+    response = urllib.request.urlopen('http://radioparadise.com/xml/now.xml')
+    tree = ElementTree.parse(response)
+    root = tree.getroot()
+    return '#nowplaying: {0} - {1} с альбома {2} \n' \
+           'http://www.radioparadise.com/rp_2.php?#name=Music&file=songinfo&song_id={3}'.\
+        format(root[0][3].text, root[0][4].text, root[0][6].text, root[0][5].text)
+
+
 try:
     token = open('etc/token').read()
+    client.loop.create_task(redis_check())
     client.run(token)
 except FileNotFoundError:
     client.logout()

@@ -5,10 +5,13 @@ import time
 import os
 import asyncio
 import json
+import random
 import urllib.request
 import xml.etree.ElementTree as ElementTree
+from cleverbot import Cleverbot
 
 client = discord.Client()
+cb = Cleverbot()
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 log_time = time.strftime('%Y-%m-%d_%H:%M:%S')
 try:
@@ -78,6 +81,13 @@ async def on_message(message):
                 await client.send_message(message.channel, redis_set(arguments[0], arguments[1]))
         elif message.channel == discord.utils.find(lambda c: c.name == 'dev', message.server.channels):
             forward(message)
+        elif client.user in message.mentions:
+            # CleverBot-интеграция
+            x = random.random() * 10
+            await client.send_typing(message.channel)
+            await asyncio.sleep(x)
+            a = cb.ask(message.content).encode('ISO-8859-1').decode('utf-8')
+            await client.send_message(message.channel, a)
     print('[{1}] {0} {3}/#{4} {2}: {5}'.
           format(time.strftime('%H:%M:%S'),
                  last_message, message.author.name, message.server, message.channel, message.content))
@@ -121,9 +131,9 @@ def redis_set(key, value):
         return False
 
 
-def json_compose(message, message_query_last):
+def json_compose(message):
     json_msg = \
-        {'id': message_query_last,
+        {'id': last_message,
          'author': message.author.name,
          'content': message.content,
          'origin': 'discord'}
@@ -143,7 +153,7 @@ def json_parse(json_text):
 
 def forward(message):
     global last_message
-    composed_msg = json_compose(message, last_message)
+    composed_msg = json_compose(message)
     redis_set('message_query:id{0}'.format(last_message), composed_msg)
     last_message += 1
     redis_set('message_query:last', last_message)
@@ -151,10 +161,12 @@ def forward(message):
 
 
 def issue():
+    # TODO GitHub Issues Integration
     pass
 
 
 def radio(arguments, channel):
+    # TODO Radio functionality
     pass
 
 

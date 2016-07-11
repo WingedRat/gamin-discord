@@ -70,7 +70,7 @@ async def on_message(message):
                 arguments_string = arguments_string + i + ' '
             logging.debug('Arguments: {0}'.format(arguments_string))
             if command == 'radio':
-                radio(arguments, message.channel)
+                radio()
             elif command == 'np':
                 await client.send_message(message.channel, now_playing())
             elif command == 'issue':
@@ -83,11 +83,12 @@ async def on_message(message):
             forward(message)
         elif client.user in message.mentions:
             # CleverBot-интеграция
-            x = random.random() * 10
+            time_to_wait = random.random() * 10
             await client.send_typing(message.channel)
-            await asyncio.sleep(x)
-            a = cb.ask(message.content).encode('ISO-8859-1').decode('utf-8')
-            await client.send_message(message.channel, a)
+            await asyncio.sleep(time_to_wait)
+            answer = cb.ask(message.content.replace(message.author.mention + ' ', ''))\
+                .encode('ISO-8859-1').decode('utf-8')
+            await client.send_message(message.channel, '{0} {1}'.format(message.author.mention, answer))
     print('[{1}] {0} {3}/#{4} {2}: {5}'.
           format(time.strftime('%H:%M:%S'),
                  last_message, message.author.name, message.server, message.channel, message.content))
@@ -165,7 +166,7 @@ def issue():
     pass
 
 
-def radio(arguments, channel):
+def radio():
     # TODO Radio functionality
     pass
 

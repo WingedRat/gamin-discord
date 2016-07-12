@@ -1,18 +1,23 @@
-import discord
-import redis
-import logging
-import time
-import os
 import asyncio
 import json
+import logging
+import os
 import random
+import time
 import urllib.request
 import xml.etree.ElementTree as ElementTree
+
+import discord
+import redis
 from cleverbot import Cleverbot
 
+try:
+    redis_address = os.environ['REDIS_ADDRESS']
+except KeyError:
+    redis_address = 'redis'
 client = discord.Client()
 cb = Cleverbot()
-r = redis.StrictRedis(host='redis', port=6379, db=0)
+r = redis.StrictRedis(host=redis_address, port=6379, db=0)
 log_time = time.strftime('%Y-%m-%d_%H:%M:%S')
 try:
     os.mkdir('logs')
@@ -39,9 +44,12 @@ async def on_ready():
     logging.info('Successfully logged in as {0} with id {1}'.format(client.user.name, client.user.id))
     print('Successfully logged in as {0} with id {1}'.format(client.user.name, client.user.id))
     try:
-        await client.change_status(game=discord.Game(name=redis_get('discord:status')))
-        logging.info('Status is set to: \'Playing {0}\''.format(redis_get('discord:status')))
-        print('Status message: \'Playing {0}\''.format(redis_get('discord:status')))
+        status = redis_get('discord:status')
+        if not status:
+            status = 'https://git.io/vKcCg'
+        await client.change_status(game=discord.Game(name=status))
+        logging.info('Status is set to: \'Playing {0}\''.format(status))
+        print('Status message: \'Playing {0}\''.format(status))
     except AttributeError or TypeError:
         logging.error('No status message set')
         print('No status message')

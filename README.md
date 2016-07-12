@@ -2,22 +2,6 @@ Gamin Bot
 =========
 Discord Bot for [RogueLabs](https://discord.me/roguelabs) server.
 
-<script type="text/javascript" src="http://discord.deliriousdrunkards.com/discord.min.js"></script>
-<script type="text/javascript">
-    discordWidget.init({
-        serverId: '143522147862708224',
-        title: 'RogueLabs',
-        join: false,
-        alphabetical: false,
-        theme: 'dark',
-        hideChannels: ['Channel Name 1', 'Channel Name 2'],
-        showAllUsers: true,
-        allUsersDefaultState: true
-    });
-    discordWidget.render();
-</script>
-<div class="discord-widget"></div>
-
 Features:
 
 + CleverBot

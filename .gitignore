@@ -4,3 +4,4 @@ etc/requirements.txt.old
 etc/token
 legacy/
 logs/
+/.directory

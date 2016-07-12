@@ -12,7 +12,7 @@ from cleverbot import Cleverbot
 
 client = discord.Client()
 cb = Cleverbot()
-r = redis.StrictRedis(host='localhost', port=6379, db=0)
+r = redis.StrictRedis(host='redis', port=6379, db=0)
 log_time = time.strftime('%Y-%m-%d_%H:%M:%S')
 try:
     os.mkdir('logs')
@@ -51,6 +51,12 @@ async def on_ready():
 
 
 @client.event
+async def on_member_join(member):
+    await client.send_message(member.server, 'Привет, {0}\nДобро пожаловать на сервер {1}!'
+                              .format(member.mention, member.server.name))
+
+
+@client.event
 async def on_message(message):
     content = message.content
     if message.author != client.user:
@@ -79,16 +85,16 @@ async def on_message(message):
                 await client.send_message(message.channel, redis_get(arguments[0]))
             elif command == 'set':
                 await client.send_message(message.channel, redis_set(arguments[0], arguments[1]))
-        elif message.channel == discord.utils.find(lambda c: c.name == 'dev', message.server.channels):
-            forward(message)
         elif client.user in message.mentions:
             # CleverBot-интеграция
             time_to_wait = random.random() * 10
             await client.send_typing(message.channel)
             await asyncio.sleep(time_to_wait)
-            answer = cb.ask(message.content.replace(message.author.mention + ' ', ''))\
+            answer = cb.ask(message.content.replace(message.author.mention + ' ', '')) \
                 .encode('ISO-8859-1').decode('utf-8')
             await client.send_message(message.channel, '{0} {1}'.format(message.author.mention, answer))
+        elif message.channel == discord.utils.find(lambda c: c.name == 'dev', message.server.channels):
+            forward(message)
     print('[{1}] {0} {3}/#{4} {2}: {5}'.
           format(time.strftime('%H:%M:%S'),
                  last_message, message.author.name, message.server, message.channel, message.content))

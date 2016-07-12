@@ -93,6 +93,10 @@ async def on_message(message):
                 await client.send_message(message.channel, redis_get(arguments[0]))
             elif command == 'set':
                 await client.send_message(message.channel, redis_set(arguments[0], arguments[1]))
+            elif command == 'version':
+                f = open('version', 'r')
+                version = f.read()
+                await client.send_message(message.channel, version)
         elif client.user in message.mentions:
             # CleverBot-интеграция
             time_to_wait = random.random() * 10

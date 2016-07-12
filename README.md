@@ -18,7 +18,7 @@ Features:
 Installation:
 -------------
 
-Copy [install.sh](scripts/install.sh) to your server and run it
+Copy [install.sh](server/install.sh) to your server and run it
 
 Versions:
 ---------

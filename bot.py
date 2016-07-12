@@ -94,9 +94,7 @@ async def on_message(message):
             elif command == 'set':
                 await client.send_message(message.channel, redis_set(arguments[0], arguments[1]))
             elif command == 'version':
-                f = open('version', 'r')
-                version = f.read()
-                await client.send_message(message.channel, version)
+                await client.send_message(message.channel, version())
         elif client.user in message.mentions:
             # CleverBot-интеграция
             time_to_wait = random.random() * 10
@@ -177,6 +175,14 @@ def forward(message):
     last_message += 1
     redis_set('message_query:last', last_message)
     logging.debug('Message id{0} forwarded'.format(last_message))
+
+
+def version():
+    f = open('version', 'r')
+    version_str = f.read()
+    f.close()
+    version_major, version_minor, version_revision, version_commit = version_str.split('.')
+    return 'v{0}.{1}.{2}, build {3}'.format(version_major, version_minor, version_revision, version_commit)
 
 
 def issue():

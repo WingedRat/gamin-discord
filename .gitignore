@@ -1,5 +1,6 @@
 .idea/
 etc/++
-etc/token
+etc/requirements.txt.old
 legacy/
 logs/
+/.directory

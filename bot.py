@@ -187,7 +187,7 @@ def now_playing():
 
 
 try:
-    token = open('etc/token').read()
+    token = redis_get('discord:token')
     client.loop.create_task(redis_check())
     client.run(token)
 except FileNotFoundError:

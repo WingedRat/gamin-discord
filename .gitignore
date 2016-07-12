@@ -1,6 +1,5 @@
+/etc/
+/legacy/
+/logs/
 .idea/
-etc/++
-etc/requirements.txt.old
-legacy/
-logs/
-/.directory
+.directory
